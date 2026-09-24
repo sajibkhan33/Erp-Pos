@@ -80,7 +80,7 @@ export const DataCleanupView: React.FC = () => {
     setIsProcessing(true);
     try {
       resetAllData();
-      showSuccess('Entire restaurant system has been successfully reset to factory defaults!');
+      showSuccess('All transaction records have been successfully reset! Menus, users, and configurations remain intact.');
     } catch (e: any) {
       showError('Failed to reset system: ' + (e?.message || 'Error'));
     } finally {
@@ -335,9 +335,9 @@ export const DataCleanupView: React.FC = () => {
         <div className="flex items-start gap-3">
           <AlertTriangle className="w-6 h-6 text-rose-600 shrink-0 mt-0.5" />
           <div>
-            <h3 className="font-extrabold text-rose-900 text-base">Factory Reset All Data (Complete Purge)</h3>
+            <h3 className="font-extrabold text-rose-900 text-base">Reset All Transactions & Entries (Data Purge)</h3>
             <p className="text-xs text-rose-800 mt-1 leading-relaxed">
-              Warning: This will permanently wipe all transactions, menu items, stock data, configurations, and reset the app back to initial factory demo state.
+              Warning: This will permanently wipe all sales invoices, purchases, payments, expenses, customer dues, and inventory movement records. Menu items, user accounts, and configurations will remain safe and intact.
             </p>
 
             <div className="mt-4">
@@ -449,10 +449,10 @@ export const DataCleanupView: React.FC = () => {
                 <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
                 <div className="text-xs text-rose-950 leading-relaxed space-y-1">
                   <p className="font-extrabold text-rose-900 text-sm">
-                    Are you sure you want to reset everything?
+                    Are you sure you want to reset all transaction records?
                   </p>
                   <p>
-                    This will wipe all sales invoices, supplier purchase vouchers, stock adjustments, dish catalogs, expenses, customer dues, and user accounts.
+                    This will permanently wipe all sales invoices, supplier purchase vouchers, stock movements, expenses, and customer dues. Your dish catalog, master items, user accounts, and table setups will remain safe.
                   </p>
                 </div>
               </div>

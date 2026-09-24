@@ -5392,7 +5392,7 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return { ...prev, users: DEFAULT_USERS, rolePermissions: DEFAULT_ROLE_PERMISSIONS };
       } else if (moduleType === 'all') {
         return {
-          ...DEFAULT_DATA,
+          ...prev,
           sales: [],
           purchases: [],
           purchaseOrders: [],
@@ -5401,8 +5401,24 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           payments: [],
           inventory: [],
           customerAdvances: [],
-          tables: DEFAULT_DATA.tables.map(t => ({ ...t, status: 'free', waiter: '', cart: [], discountVal: 0 })),
-          session: { isActive: false, openingCash: 0, startTime: "" }
+          posSessions: [],
+          dayEndRecords: [],
+          chefShifts: [],
+          activeChefShift: null,
+          waiterShifts: [],
+          activeWaiterShift: null,
+          journalEntries: [],
+          tables: (prev.tables || []).map(t => ({ 
+            ...t, 
+            status: 'free' as const, 
+            waiter: '', 
+            customerName: '', 
+            cart: [], 
+            discountVal: 0, 
+            isBillPrinted: false 
+          })),
+          session: { isActive: false, openingCash: 0, startTime: "" },
+          businessDay: { date: new Date().toISOString().split('T')[0], isOpen: false, dayNumber: 1 }
         };
       }
       return prev;
@@ -5414,8 +5430,8 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const resetAllData = () => {
-    setData({
-      ...DEFAULT_DATA,
+    setData(prev => ({
+      ...prev,
       sales: [],
       purchases: [],
       purchaseOrders: [],
@@ -5424,9 +5440,25 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       payments: [],
       inventory: [],
       customerAdvances: [],
-      tables: DEFAULT_DATA.tables.map(t => ({ ...t, status: 'free', waiter: '', cart: [], discountVal: 0 })),
-      session: { isActive: false, openingCash: 0, startTime: "" }
-    });
+      posSessions: [],
+      dayEndRecords: [],
+      chefShifts: [],
+      activeChefShift: null,
+      waiterShifts: [],
+      activeWaiterShift: null,
+      journalEntries: [],
+      tables: (prev.tables || []).map(t => ({ 
+        ...t, 
+        status: 'free' as const, 
+        waiter: '', 
+        customerName: '', 
+        cart: [], 
+        discountVal: 0, 
+        isBillPrinted: false 
+      })),
+      session: { isActive: false, openingCash: 0, startTime: "" },
+      businessDay: { date: new Date().toISOString().split('T')[0], isOpen: false, dayNumber: 1 }
+    }));
   };
 
   const cleanAllSystemData = () => {
