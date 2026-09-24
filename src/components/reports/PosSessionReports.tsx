@@ -189,7 +189,7 @@ export const PosSessionReports: React.FC = () => {
       const dayRecord = (data.dayEndRecords || []).find(r => r.date === date);
       const daySessions = allSessions.filter(s => s.date === date);
       const dayExpenses = (data.expenses || []).filter(e => e.date === date).reduce((sum, e) => sum + (e.amount || 0), 0);
-      const daySales = (data.sales || []).filter(s => s.date === date);
+      const daySales = (data.sales || []).filter(s => s.date === date && !s.isVoid && s.status !== 'VOIDED' && s.status !== 'CANCELLED');
 
       const sessionSales = daySessions.reduce((sum, s) => sum + (s.totalSales || 0), 0);
       const sessionCash = daySessions.reduce((sum, s) => sum + (s.cashSales || 0), 0);

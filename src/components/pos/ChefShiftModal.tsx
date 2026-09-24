@@ -62,7 +62,7 @@ export const ChefShiftModal: React.FC = () => {
     if (!activeChefShift) return { totalKots: 0, totalDishes: 0, dishBreakdown: [] };
 
     const startTs = activeChefShift.startTimestamp || (Date.now() - 3600000);
-    const shiftSales = (data.sales || []).filter(s => s.date === today && (s.createdAt || 0) >= startTs);
+    const shiftSales = (data.sales || []).filter(s => s.date === today && (s.createdAt || 0) >= startTs && !s.isVoid && s.status !== 'VOIDED' && s.status !== 'CANCELLED');
 
     const dishMap: Record<string, number> = {};
     let totalDishes = 0;

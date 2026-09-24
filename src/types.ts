@@ -134,6 +134,10 @@ export interface Table {
   orderCreatedAt?: number;
   billedAt?: number;
   billedAtTime?: string;
+  linkedSaleId?: number;
+  linkedInvoiceNo?: string;
+  isPaidOrder?: boolean;
+  paidAmount?: number;
 }
 
 export interface Session {
@@ -402,6 +406,7 @@ export interface SaleRecord {
   commissionPercent?: number;
   table?: string;
   discountVal?: number;
+  discountType?: DiscountType;
   vatVal?: number;
   netRestaurantRevenue?: number; // total - commission
   appliedPromo?: string;
@@ -427,6 +432,26 @@ export interface SaleRecord {
   orderCreatedRole?: string;
   shift?: string;
   createdAt?: number;
+  status?: 'SETTLED' | 'VOIDED' | 'CANCELLED';
+  isVoid?: boolean;
+  voidReason?: string;
+  voidedAt?: string;
+  voidedBy?: string;
+  refundAmount?: number;
+  refundMethod?: string;
+  refundStatus?: 'REFUNDED' | 'NO_REFUND';
+  tableId?: string;
+  refundItems?: Array<{
+    itemId: number;
+    itemName: string;
+    qty: number;
+    unitPrice: number;
+    refundAmount: number;
+    refundMethod: string;
+    reason: string;
+    refundedAt: string;
+    refundedBy: string;
+  }>;
 }
 
 export interface ExpenseRecord {
@@ -687,9 +712,12 @@ export interface PrintableReceipt {
   };
   changeReturn?: number;
   isSettled: boolean;
-  receiptType?: 'BILL' | 'KOT' | 'PAID_MEMO' | 'CANCEL_KOT';
+  receiptType?: 'BILL' | 'KOT' | 'PAID_MEMO' | 'CANCEL_KOT' | 'VOID_MEMO';
   voidReason?: string;
   voidAuthorizedBy?: string;
+  refundAmount?: number;
+  refundMethod?: string;
+  refundStatus?: 'REFUNDED' | 'NO_REFUND';
   cancelledItems?: {
     name: string;
     qty: number;

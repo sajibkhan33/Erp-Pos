@@ -36,6 +36,9 @@ export const ReleaseTableModal: React.FC<ReleaseTableModalProps> = ({
 }) => {
   const { releaseTable, currentUser, data, setPosView } = useRestaurant();
 
+  const isPaidOrder = Boolean(table.linkedSaleId || table.isPaidOrder);
+  const [refundMethod, setRefundMethod] = useState<'CASH' | 'CARD' | 'BKASH' | 'NAGAD'>('CASH');
+
   const [selectedReason, setSelectedReason] = useState<string>(PRESET_RELEASE_REASONS[0]);
   const [customReason, setCustomReason] = useState<string>('');
   
@@ -79,8 +82,8 @@ export const ReleaseTableModal: React.FC<ReleaseTableModalProps> = ({
       ? (customReason.trim() || 'Table released by authority')
       : selectedReason;
 
-    // Execute table release
-    releaseTable(table.id, finalReason, authorizerName);
+    // Execute table release with refund
+    releaseTable(table.id, finalReason, authorizerName, refundMethod);
     if (onSuccess) {
       onSuccess();
     }
@@ -244,6 +247,48 @@ export const ReleaseTableModal: React.FC<ReleaseTableModalProps> = ({
             </div>
           )}
 
+          {/* Paid Order Refund Banner & Method */}
+          {isPaidOrder && (
+            <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
+                    <span>💵 Void Entire Order & Refund Balance</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-200 text-emerald-900 font-mono font-bold">
+                      {table.linkedInvoiceNo || 'PAID BILL'}
+                    </span>
+                  </span>
+                  <span className="text-[11px] text-emerald-700 block mt-0.5">
+                    Total remaining balance will be refunded and deducted from Cash Drawer / Sales:
+                  </span>
+                </div>
+                <span className="text-base font-black text-emerald-900 font-mono">
+                  ৳{(table.paidAmount || tableSubtotal).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1.5 border-t border-emerald-200/80">
+                <span className="text-[11px] font-bold text-emerald-900">Refund Method:</span>
+                <div className="flex gap-1.5">
+                  {(['CASH', 'CARD', 'BKASH', 'NAGAD'] as const).map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setRefundMethod(m)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
+                        refundMethod === m
+                          ? 'bg-emerald-700 text-white shadow-xs'
+                          : 'bg-white text-emerald-900 border border-emerald-300 hover:bg-emerald-100'
+                      }`}
+                    >
+                      {m === 'CASH' ? 'Cash Drawer' : m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="pt-2 flex gap-2.5">
             <button
@@ -256,10 +301,12 @@ export const ReleaseTableModal: React.FC<ReleaseTableModalProps> = ({
             <button
               type="submit"
               id="btn-confirm-release-table"
-              className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+              className={`flex-1 py-2.5 rounded-xl text-white font-black shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer text-xs ${
+                isPaidOrder ? 'bg-rose-600 hover:bg-rose-700' : 'bg-amber-500 hover:bg-amber-600 text-slate-950'
+              }`}
             >
               <RotateCcw className="w-4 h-4" />
-              <span>Release Table</span>
+              <span>{isPaidOrder ? `Void Order & Refund ৳${(table.paidAmount || tableSubtotal).toLocaleString()}` : 'Release Table'}</span>
             </button>
           </div>
         </form>

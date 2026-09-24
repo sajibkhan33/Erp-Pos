@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useRestaurant } from '../../context/RestaurantContext';
+import { useRestaurant, isSaleActive } from '../../context/RestaurantContext';
 import { ReportFilters, DatePreset, exportCsvHelper } from './ReportFilters';
 import { 
   Users, 
@@ -61,9 +61,10 @@ export const UserSalesReport: React.FC = () => {
     return 'Main Cashier';
   };
 
-  // Filter sales based on date range, shift session, and search
+  // Filter sales based on date range, shift session, and search (excluding voided)
   const filteredSales = useMemo(() => {
     return (data.sales || []).filter(sale => {
+      if (!isSaleActive(sale)) return false;
       // Shift session filter
       if (selectedSessionId !== 'ALL') {
         if (selectedSessionId === 'ACTIVE') {

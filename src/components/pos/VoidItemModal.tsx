@@ -44,6 +44,10 @@ export const VoidItemModal: React.FC<VoidItemModalProps> = ({
 }) => {
   const { voidCartItem, currentUser, data } = useRestaurant();
 
+  const currentTable = data.tables.find(t => t.id === tableId);
+  const isPaidOrder = Boolean(currentTable?.linkedSaleId || currentTable?.isPaidOrder);
+  const [refundMethod, setRefundMethod] = useState<'CASH' | 'CARD' | 'BKASH' | 'NAGAD'>('CASH');
+
   const [voidQty, setVoidQty] = useState<number>(item.qty);
   const [selectedReason, setSelectedReason] = useState<string>(PRESET_VOID_REASONS[0]);
   const [customReason, setCustomReason] = useState<string>('');
@@ -89,8 +93,8 @@ export const VoidItemModal: React.FC<VoidItemModalProps> = ({
       ? (customReason.trim() || 'Voided by authorized manager')
       : selectedReason;
 
-    // Execute void & trigger Cancel KOT
-    voidCartItem(tableId, item.cartItemId || itemIndex, voidQty, finalReason, authorizerName);
+    // Execute void & trigger Cancel KOT & Refund if paid order
+    voidCartItem(tableId, item.cartItemId || itemIndex, voidQty, finalReason, authorizerName, refundMethod);
     onClose();
   };
 
@@ -276,6 +280,48 @@ export const VoidItemModal: React.FC<VoidItemModalProps> = ({
             )}
           </div>
 
+          {/* Paid Order Refund Banner & Method */}
+          {isPaidOrder && (
+            <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
+                    <span>💵 Process Refund for this Item</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-200 text-emerald-900 font-mono font-bold">
+                      {currentTable?.linkedInvoiceNo || 'PAID BILL'}
+                    </span>
+                  </span>
+                  <span className="text-[11px] text-emerald-700 block mt-0.5">
+                    Amount will be refunded and deducted from Cash Drawer / Sales:
+                  </span>
+                </div>
+                <span className="text-base font-black text-emerald-900 font-mono">
+                  ৳{(voidQty * item.price).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1.5 border-t border-emerald-200/80">
+                <span className="text-[11px] font-bold text-emerald-900">Refund Method:</span>
+                <div className="flex gap-1.5">
+                  {(['CASH', 'CARD', 'BKASH', 'NAGAD'] as const).map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setRefundMethod(m)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
+                        refundMethod === m
+                          ? 'bg-emerald-700 text-white shadow-xs'
+                          : 'bg-white text-emerald-900 border border-emerald-300 hover:bg-emerald-100'
+                      }`}
+                    >
+                      {m === 'CASH' ? 'Cash Drawer' : m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="pt-2 flex gap-2.5">
             <button
@@ -288,10 +334,12 @@ export const VoidItemModal: React.FC<VoidItemModalProps> = ({
             <button
               type="submit"
               id="btn-confirm-void-item"
-              className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+              className={`flex-1 py-2.5 rounded-xl text-white font-extrabold shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer text-xs ${
+                isPaidOrder ? 'bg-amber-600 hover:bg-amber-700' : 'bg-rose-600 hover:bg-rose-700'
+              }`}
             >
               <Trash2 className="w-4 h-4" />
-              <span>Confirm Void & Print Cancel KOT</span>
+              <span>{isPaidOrder ? `Confirm Void & Refund ৳${(voidQty * item.price).toLocaleString()}` : 'Confirm Void & Print Cancel KOT'}</span>
             </button>
           </div>
         </form>

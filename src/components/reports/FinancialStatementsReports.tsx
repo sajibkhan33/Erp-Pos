@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useRestaurant } from '../../context/RestaurantContext';
+import { useRestaurant, isSaleActive } from '../../context/RestaurantContext';
 import { ReportFilters, DatePreset, exportCsvHelper } from './ReportFilters';
 import { 
   Scale, 
@@ -53,6 +53,7 @@ export const FinancialStatementsReports: React.FC<SubReportProps> = ({ reportTyp
     let periodDueCollected = 0;
 
     data.sales.forEach(s => {
+      if (!isSaleActive(s)) return;
       const isPrior = Boolean(startDate && s.date && s.date < startDate);
       const isPeriod = (!startDate || s.date >= startDate) && (!endDate || s.date <= endDate);
 
@@ -181,6 +182,7 @@ export const FinancialStatementsReports: React.FC<SubReportProps> = ({ reportTyp
     let periodBOMCost = 0;
 
     data.sales.forEach(sale => {
+      if (!isSaleActive(sale)) return;
       const isPrior = Boolean(startDate && sale.date && sale.date < startDate);
       const isPeriod = (!startDate || sale.date >= startDate) && (!endDate || sale.date <= endDate);
 
@@ -452,6 +454,7 @@ export const FinancialStatementsReports: React.FC<SubReportProps> = ({ reportTyp
     let totalVAT = 0;
 
     data.sales.forEach(s => {
+      if (!isSaleActive(s)) return;
       if (!matchesDate(s.date)) return;
       grossSales += (s.subtotal || s.total);
       totalDiscounts += (s.discountVal || 0);
@@ -463,6 +466,7 @@ export const FinancialStatementsReports: React.FC<SubReportProps> = ({ reportTyp
     // Cost of Sales (COGS): Recipe BOM consumption
     let cogsRawCost = 0;
     data.sales.forEach(s => {
+      if (!isSaleActive(s)) return;
       if (!matchesDate(s.date)) return;
       (s.items || []).forEach(ci => {
         const m = data.menuItems.find(mi => mi.id === ci.id);
@@ -548,6 +552,7 @@ export const FinancialStatementsReports: React.FC<SubReportProps> = ({ reportTyp
       });
       let bomOut = 0;
       data.sales.forEach(s => {
+        if (!isSaleActive(s)) return;
         (s.items || []).forEach(ci => {
           const m = data.menuItems.find(mi => mi.id === ci.id);
           if (m?.recipe) {
@@ -566,6 +571,7 @@ export const FinancialStatementsReports: React.FC<SubReportProps> = ({ reportTyp
     // Accounts Receivable
     let arBalance = 0;
     data.sales.forEach(s => {
+      if (!isSaleActive(s)) return;
       arBalance += (s.dueGiven || 0) - (s.dueCollected || 0);
     });
 
@@ -573,6 +579,7 @@ export const FinancialStatementsReports: React.FC<SubReportProps> = ({ reportTyp
     let cashBalance = 15000;
     let bankBalance = 109000;
     data.sales.forEach(s => {
+      if (!isSaleActive(s)) return;
       cashBalance += (s.cash || 0) + (s.dueCollected || 0);
       bankBalance += ((s.card || 0) + (s.bkash || 0) + (s.nagad || 0));
     });
@@ -640,6 +647,7 @@ export const FinancialStatementsReports: React.FC<SubReportProps> = ({ reportTyp
     // 1. Operating Activities
     let customerReceipts = 0;
     data.sales.forEach(s => {
+      if (!isSaleActive(s)) return;
       if (!matchesDate(s.date)) return;
       customerReceipts += (s.cash || 0) + (s.card || 0) + (s.bkash || 0) + (s.nagad || 0) + (s.dueCollected || 0);
     });

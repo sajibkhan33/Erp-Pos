@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useRestaurant } from '../../context/RestaurantContext';
+import { useRestaurant, isSaleActive } from '../../context/RestaurantContext';
 import { ReportFilters, DatePreset, exportCsvHelper } from './ReportFilters';
 import { 
   ChefHat, 
@@ -32,9 +32,10 @@ export const KitchenDepartmentSalesReport: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [activeDepartmentDrilldown, setActiveDepartmentDrilldown] = useState<string | null>(null);
 
-  // Filter sales by date
+  // Filter sales by date (excluding voided)
   const filteredSales = useMemo(() => {
     return (data.sales || []).filter(sale => {
+      if (!isSaleActive(sale)) return false;
       if (startDate && sale.date < startDate) return false;
       if (endDate && sale.date > endDate) return false;
       return true;

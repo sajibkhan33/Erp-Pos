@@ -304,6 +304,7 @@ export const StockValuationView: React.FC = () => {
 
       // Analyze POS Sales & Recipe BOM Consumption
       data.sales.forEach(sale => {
+        if (sale.isVoid || sale.status === 'VOIDED' || sale.status === 'CANCELLED') return;
         const sDate = sale.date ? sale.date.split('T')[0] : '';
         if (sale.items && Array.isArray(sale.items)) {
           sale.items.forEach(soldItem => {
@@ -722,6 +723,7 @@ export const StockValuationView: React.FC = () => {
 
     // 3. POS Sales & Recipe BOM Deductions
     data.sales.forEach(sale => {
+      if (sale.isVoid || sale.status === 'VOIDED' || sale.status === 'CANCELLED') return;
       const sDate = sale.date ? sale.date.split('T')[0] : '2025-01-01';
       if (sale.items && Array.isArray(sale.items)) {
         sale.items.forEach((soldItem, sIdx) => {

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useRestaurant } from '../../context/RestaurantContext';
+import { useRestaurant, isSaleActive } from '../../context/RestaurantContext';
 import { ReportFilters, DatePreset, exportCsvHelper } from './ReportFilters';
 import { 
   Percent, 
@@ -28,6 +28,7 @@ export const CommissionReports: React.FC = () => {
   // Extract all sales that have an associated commission agent / channel
   const commissionSales = useMemo(() => {
     return (data.sales || []).filter(sale => {
+      if (!isSaleActive(sale)) return false;
       // Check date range
       if (startDate && sale.date < startDate) return false;
       if (endDate && sale.date > endDate) return false;

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useRestaurant } from '../../context/RestaurantContext';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useRestaurant, isSaleActive } from '../../context/RestaurantContext';
 import { 
   Search, 
   Utensils, 
@@ -107,7 +107,9 @@ export const PosBillingView: React.FC = () => {
     setActiveTab,
     canAccessTab,
     language,
-    t
+    t,
+    voidSale,
+    finishLinkedOrderInPos
   } = useRestaurant();
 
   const isWaiter = currentUser?.role === 'WAITER';
@@ -378,6 +380,20 @@ export const PosBillingView: React.FC = () => {
     ? data.tableZones 
     : ['Floor 1', 'Floor 2', 'VIP Lounge', 'Rooftop Garden'];
 
+  // Find last settled sale for quick undo in POS
+  const lastSettledSale = useMemo(() => {
+    return [...data.sales].reverse().find(s => isSaleActive(s) && (s.status === 'SETTLED' || !s.status));
+  }, [data.sales]);
+
+  // Find last settled sale for the currently active table
+  const lastActiveTableSale = useMemo(() => {
+    if (!activeTable) return null;
+    return [...data.sales].reverse().find(s => 
+      isSaleActive(s) && (s.status === 'SETTLED' || !s.status) &&
+      ((s.tableId && s.tableId === activeTable.id) || (s.table && s.table.toLowerCase().trim() === activeTable.name.toLowerCase().trim()) || (s.details && s.details.toLowerCase().includes(activeTable.name.toLowerCase().trim())))
+    );
+  }, [data.sales, activeTable]);
+
   // Filtered menu items
   const filteredMenuItems = data.menuItems.filter(item => {
     if (selectedDept !== 'ALL' && item.department !== selectedDept) return false;
@@ -533,6 +549,30 @@ export const PosBillingView: React.FC = () => {
                     </button>
                   ) : null}
                 </>
+              )}
+
+              {lastSettledSale && canCancelOrEditOrder && (
+                <button
+                  type="button"
+                  id="btn-pos-undo-last-sale"
+                  onClick={() => {
+                    const confirmed = window.confirm(`Undo settlement for ${lastSettledSale.table || 'Table'} (${lastSettledSale.invoiceNo}) and re-open order in cart?`);
+                    if (confirmed) {
+                      voidSale(lastSettledSale.id, {
+                        reason: 'Settlement undone by cashier - Returned to POS Cart',
+                        refundPayment: true,
+                        refundMethod: 'CASH',
+                        restoreToTable: true
+                      });
+                    }
+                  }}
+                  className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer shrink-0 shadow-2xs active:scale-95"
+                  title={`Undo last settled order: ${lastSettledSale.invoiceNo} (৳${lastSettledSale.total}) and re-open table in cart`}
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-amber-700" />
+                  <span className="hidden sm:inline">Undo Last Settle</span>
+                  <span className="font-mono text-[10px] text-amber-700 font-bold">({lastSettledSale.invoiceNo})</span>
+                </button>
               )}
             </div>
           </div>
@@ -1086,6 +1126,35 @@ export const PosBillingView: React.FC = () => {
             </div>
           </div>
 
+          {/* Linked Paid Order Alert Banner */}
+          {activeTable.linkedSaleId && (
+            <div className="mx-2 mt-1.5 p-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 flex items-center justify-between text-xs shadow-2xs shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="p-1 rounded-lg bg-amber-500 text-white shrink-0">
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </span>
+                <div>
+                  <div className="flex items-center gap-1.5 font-black text-xs">
+                    <span>Reopened Paid Order:</span>
+                    <span className="font-mono text-blue-800 bg-white px-1.5 py-0.2 rounded border border-amber-200">{activeTable.linkedInvoiceNo}</span>
+                  </div>
+                  <div className="text-[10.5px] text-amber-800 font-semibold">
+                    Paid: <b className="text-slate-900">৳{(activeTable.paidAmount || 0).toLocaleString()}</b> • Click <span className="text-rose-700 font-black">⊘</span> or <span className="text-rose-700 font-black">-</span> to refund item-by-item
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReleasingTable(activeTable)}
+                className="px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-extrabold text-[10px] flex items-center gap-1 shadow cursor-pointer transition shrink-0 ml-2"
+                title="Cancel & Void the Entire Order with Refund"
+              >
+                <Ban className="w-3 h-3" />
+                <span>Void Full Order</span>
+              </button>
+            </div>
+          )}
+
           {/* Order Timing Row: Start Time • End Time • Total Duration (Matching mark 1 text size and style) */}
           {(() => {
             const orderStartTimestamp = activeTable.orderCreatedAt || (
@@ -1174,6 +1243,30 @@ export const PosBillingView: React.FC = () => {
             {activeTable?.cart?.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-400 font-medium flex flex-col items-center justify-center gap-3">
                 <p>Cart is empty. Click items from the menu to add dishes.</p>
+
+                {lastActiveTableSale && canCancelOrEditOrder && (
+                  <button
+                    type="button"
+                    id="btn-undo-table-sale"
+                    onClick={() => {
+                      const confirmed = window.confirm(`Undo settlement for ${activeTable.name} (${lastActiveTableSale.invoiceNo}) and restore all items to cart?`);
+                      if (confirmed) {
+                        voidSale(lastActiveTableSale.id, {
+                          reason: 'Accidental settlement - Restored to cart for edit/cancellation',
+                          refundPayment: true,
+                          refundMethod: 'CASH',
+                          restoreToTable: true
+                        });
+                      }
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition cursor-pointer"
+                    title={`Undo settlement for ${lastActiveTableSale.invoiceNo} (৳${lastActiveTableSale.total}) and re-open cart`}
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Undo Settlement & Restore Order ({lastActiveTableSale.invoiceNo})</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => setMobilePosTab('menu')}
@@ -1282,22 +1375,24 @@ export const PosBillingView: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            if (isItemKotPrinted && item.qty <= (item.kotPrintedQty || 0)) {
-                              // Cannot decrement below printed KOT qty without void authorization
+                            if ((isItemKotPrinted && item.qty <= (item.kotPrintedQty || 0)) || activeTable.linkedSaleId) {
+                              // Cannot decrement below printed KOT qty without void authorization (or paid order requiring refund)
                               setVoidingItem({ item, index: idx });
                             } else {
                               updateCartItemQty(activeTable.id, item.cartItemId || idx, -1);
                             }
                           }}
                           className={`w-6 h-6 rounded-lg flex items-center justify-center transition cursor-pointer ${
-                            isItemKotPrinted && item.qty <= (item.kotPrintedQty || 0)
+                            (isItemKotPrinted && item.qty <= (item.kotPrintedQty || 0)) || activeTable.linkedSaleId
                               ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'
                               : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                           }`}
                           title={
-                            isItemKotPrinted && item.qty <= (item.kotPrintedQty || 0)
-                              ? 'Void Item (KOT already sent to kitchen - authorization required)'
-                              : 'Decrease quantity'
+                            activeTable.linkedSaleId
+                              ? 'Reduce quantity & Refund item'
+                              : (isItemKotPrinted && item.qty <= (item.kotPrintedQty || 0)
+                                  ? 'Void Item (KOT already sent to kitchen - authorization required)'
+                                  : 'Decrease quantity')
                           }
                         >
                           <Minus className="w-3 h-3" />
@@ -1319,24 +1414,26 @@ export const PosBillingView: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            if (isItemKotPrinted) {
+                            if (isItemKotPrinted || activeTable.linkedSaleId) {
                               setVoidingItem({ item, index: idx });
                             } else {
                               removeCartItem(activeTable.id, item.cartItemId || idx);
                             }
                           }}
                           className={`w-6 h-6 rounded-lg flex items-center justify-center transition cursor-pointer ml-0.5 ${
-                            isItemKotPrinted
+                            isItemKotPrinted || activeTable.linkedSaleId
                               ? 'bg-rose-100 hover:bg-rose-200 text-rose-700'
                               : 'hover:bg-slate-100 text-slate-400 hover:text-rose-600'
                           }`}
                           title={
-                            isItemKotPrinted
-                              ? 'Void KOT Item (Admin/Manager Permission Required)'
-                              : 'Remove from cart'
+                            activeTable.linkedSaleId
+                              ? 'Void Item & Refund amount'
+                              : (isItemKotPrinted
+                                  ? 'Void KOT Item (Admin/Manager Permission Required)'
+                                  : 'Remove from cart')
                           }
                         >
-                          {isItemKotPrinted ? (
+                          {isItemKotPrinted || activeTable.linkedSaleId ? (
                             <Ban className="w-3 h-3 text-rose-700" />
                           ) : (
                             <Trash2 className="w-3 h-3" />
@@ -1432,9 +1529,30 @@ export const PosBillingView: React.FC = () => {
                 )}
 
                 <div className="flex justify-between text-sm font-extrabold text-slate-900 pt-1 border-t border-slate-200">
-                  <span>Total Payable:</span>
+                  <span>{activeTable.linkedSaleId ? 'Current Bill Value:' : 'Total Payable:'}</span>
                   <span className="text-[#004b9b] text-base font-black font-mono">৳{netTotal.toLocaleString()}</span>
                 </div>
+
+                {activeTable.linkedSaleId && (
+                  <div className="mt-1 pt-1 border-t border-amber-200/80 space-y-0.5 text-[11px]">
+                    <div className="flex justify-between text-slate-600">
+                      <span>Already Settled ({activeTable.linkedInvoiceNo}):</span>
+                      <span className="font-bold text-emerald-700 font-mono">৳{(activeTable.paidAmount || 0).toLocaleString()}</span>
+                    </div>
+                    {netTotal < (activeTable.paidAmount || 0) && (
+                      <div className="flex justify-between font-bold text-amber-700">
+                        <span>Total Refunded:</span>
+                        <span className="font-mono">৳{((activeTable.paidAmount || 0) - netTotal).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {netTotal > (activeTable.paidAmount || 0) && (
+                      <div className="flex justify-between font-extrabold text-rose-700">
+                        <span>Additional Due to Collect:</span>
+                        <span className="font-mono">৳{(netTotal - (activeTable.paidAmount || 0)).toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })()}
@@ -1528,6 +1646,47 @@ export const PosBillingView: React.FC = () => {
             );
 
             const isBillAlreadyPrinted = activeTable?.status === 'billed';
+
+            // Special State: Reopened Settled Sale (Paid Order being modified or voided)
+            if (activeTable.linkedSaleId) {
+              const remainingDue = Math.max(0, netTotal - (activeTable.paidAmount || 0));
+              return (
+                <div className="pt-1.5 sm:pt-2 shrink-0">
+                  <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+                    <button
+                      type="button"
+                      onClick={() => finishLinkedOrderInPos(activeTable.id)}
+                      className="py-2 sm:py-2.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition flex items-center justify-center gap-1 shadow-2xs border border-slate-300 cursor-pointer"
+                      title="Save and return to Sales Ledger"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <span>Back to Sales</span>
+                    </button>
+                    {remainingDue > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => openSettleModal(activeTable.id)}
+                        className="py-2 sm:py-2.5 px-2 rounded-xl bg-[#004b9b] hover:bg-[#005bb8] text-white font-black text-xs transition flex items-center justify-center gap-1 shadow-md cursor-pointer"
+                        title="Settle additional items added to this order"
+                      >
+                        <CreditCard className="w-3.5 h-3.5 shrink-0" />
+                        <span>Settle Due (৳{remainingDue})</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => finishLinkedOrderInPos(activeTable.id)}
+                        className="py-2 sm:py-2.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition flex items-center justify-center gap-1 shadow-md cursor-pointer"
+                        title="Done modifying order - save and release table"
+                      >
+                        <Check className="w-3.5 h-3.5 shrink-0" />
+                        <span>Done / Release</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            }
 
             // State 1: Cart is empty -> Only Cancel button view hobe
             if (isCartEmpty) {

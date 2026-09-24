@@ -74,6 +74,7 @@ export const WaiterShiftModal: React.FC = () => {
   const today = new Date().toISOString().split('T')[0];
   const waiterSales = useMemo(() => {
     return (data.sales || []).filter(s => {
+      if (s.isVoid || s.status === 'VOIDED' || s.status === 'CANCELLED') return false;
       if (s.date !== today) return false;
       const details = (s.details || '').toLowerCase();
       const wName = activeWaiter.toLowerCase();

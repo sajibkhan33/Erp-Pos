@@ -18,9 +18,10 @@ export const ShiftZReportModal: React.FC = () => {
   const isMatch = (session.cashDifference || 0) === 0;
   const isShort = (session.cashDifference || 0) < 0;
 
-  // Filter session sales
+  // Filter session sales (excluding voided / cancelled orders)
   const sessionSales = useMemo(() => {
     return (data.sales || []).filter(s => {
+      if (s.isVoid || s.status === 'VOIDED' || s.status === 'CANCELLED') return false;
       // 1. If session has explicit saleIds list, only match those exact sales
       if (session.saleIds && session.saleIds.length > 0) {
         return session.saleIds.includes(s.id);

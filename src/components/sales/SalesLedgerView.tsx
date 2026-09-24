@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useRestaurant, formatRoleTitle, getOrderTakerDisplay } from '../../context/RestaurantContext';
+import { useRestaurant, formatRoleTitle, getOrderTakerDisplay, isSaleActive } from '../../context/RestaurantContext';
 import { 
   Receipt, 
   Search, 
@@ -15,18 +15,46 @@ import {
   Eye,
   FileSpreadsheet,
   ReceiptText,
-  UserCheck
+  UserCheck,
+  RotateCcw,
+  Ban,
+  AlertTriangle,
+  Undo2,
+  Check,
+  ArrowRightLeft
 } from 'lucide-react';
+import { SaleRecord } from '../../types';
 
 export const SalesLedgerView: React.FC = () => {
-  const { data, metrics, deleteSale, updateSaleWaiter, saveDirectDueCollection, openPrintBill, setPrintableReceipt, currentUser } = useRestaurant();
+  const { 
+    data, 
+    metrics, 
+    deleteSale, 
+    voidSale, 
+    restoreVoidedSale, 
+    reopenSettledSaleInPos,
+    updateSaleWaiter, 
+    saveDirectDueCollection, 
+    openPrintBill, 
+    setPrintableReceipt, 
+    currentUser 
+  } = useRestaurant();
   const [search, setSearch] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'VOIDED'>('ALL');
   const [isDueModalOpen, setIsDueModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reassignSale, setReassignSale] = useState<{ id: number; invoiceNo: string; waiterName: string } | null>(null);
   const [newWaiterChoice, setNewWaiterChoice] = useState<string>('');
+
+  // Void / Cancel Order Modal state
+  const [voidingSale, setVoidingSale] = useState<SaleRecord | null>(null);
+  const [voidReason, setVoidReason] = useState<string>('Customer Cancellation');
+  const [customVoidReason, setCustomVoidReason] = useState<string>('');
+  const [refundPayment, setRefundPayment] = useState<boolean>(true);
+  const [refundMethod, setRefundMethod] = useState<'CASH' | 'CARD' | 'BKASH' | 'NAGAD' | 'ORIGINAL'>('CASH');
+  const [restoreToTable, setRestoreToTable] = useState<boolean>(true);
 
   // Due collection modal state
   const [dueCust, setDueCust] = useState(data.customers[0] || 'Walk-in Customer');
@@ -78,16 +106,91 @@ export const SalesLedgerView: React.FC = () => {
     }
     if (startDate && s.date < startDate) return false;
     if (endDate && s.date > endDate) return false;
+    if (statusFilter === 'ACTIVE' && !isSaleActive(s)) return false;
+    if (statusFilter === 'VOIDED' && isSaleActive(s)) return false;
     return true;
   });
 
-  const totalFilteredSales = filteredSales.reduce((sum, s) => sum + (s.total || 0), 0);
-  const totalFilteredCash = filteredSales.reduce((sum, s) => sum + (s.cash || 0), 0);
-  const totalFilteredCard = filteredSales.reduce((sum, s) => sum + (s.card || 0), 0);
-  const totalFilteredBkash = filteredSales.reduce((sum, s) => sum + (s.bkash || 0), 0);
-  const totalFilteredNagad = filteredSales.reduce((sum, s) => sum + (s.nagad || 0), 0);
+  const activeFilteredSales = filteredSales.filter(isSaleActive);
+  const voidedFilteredSales = filteredSales.filter(s => !isSaleActive(s));
+
+  const totalFilteredSales = activeFilteredSales.reduce((sum, s) => sum + (s.total || 0), 0);
+  const totalFilteredCash = activeFilteredSales.reduce((sum, s) => sum + (s.cash || 0), 0);
+  const totalFilteredCard = activeFilteredSales.reduce((sum, s) => sum + (s.card || 0), 0);
+  const totalFilteredBkash = activeFilteredSales.reduce((sum, s) => sum + (s.bkash || 0), 0);
+  const totalFilteredNagad = activeFilteredSales.reduce((sum, s) => sum + (s.nagad || 0), 0);
   const totalFilteredDigital = totalFilteredCard + totalFilteredBkash + totalFilteredNagad;
-  const totalFilteredDue = filteredSales.reduce((sum, s) => sum + (s.dueGiven || 0), 0);
+  const totalFilteredDue = activeFilteredSales.reduce((sum, s) => sum + (s.dueGiven || 0), 0);
+  const totalFilteredVoided = voidedFilteredSales.reduce((sum, s) => sum + (s.total || 0), 0);
+
+  const handleOpenVoidModal = (sale: SaleRecord) => {
+    setVoidingSale(sale);
+    setVoidReason('Customer Cancellation');
+    setCustomVoidReason('');
+    setRefundPayment(true);
+    if (sale.card && !sale.cash && !sale.bkash && !sale.nagad) {
+      setRefundMethod('CARD');
+    } else if (sale.bkash && !sale.cash && !sale.card && !sale.nagad) {
+      setRefundMethod('BKASH');
+    } else if (sale.nagad && !sale.cash && !sale.card && !sale.bkash) {
+      setRefundMethod('NAGAD');
+    } else {
+      setRefundMethod('CASH');
+    }
+    setRestoreToTable(true);
+  };
+
+  const handleConfirmVoid = () => {
+    if (!voidingSale) return;
+    const finalReason = customVoidReason.trim() ? customVoidReason.trim() : voidReason;
+    voidSale(voidingSale.id, {
+      reason: finalReason,
+      refundPayment,
+      refundMethod,
+      restoreToTable
+    });
+    setVoidingSale(null);
+  };
+
+  const handlePrintVoidSlip = (sale: SaleRecord) => {
+    let tableName = sale.table || 'Table';
+    setPrintableReceipt({
+      restaurantName: data.restaurantProfile?.name || 'BARCODE CAFE BANANI',
+      restaurantAddress: data.restaurantProfile?.address || 'House #42, Road #11, Block D, Banani, Dhaka-1213',
+      restaurantHotline: data.restaurantProfile?.phone || '+880 1700-000000',
+      restaurantBin: data.restaurantProfile?.binOrVat || '0029381-01',
+      invoiceNo: sale.invoiceNo || `POS-${sale.id}`,
+      dateTime: sale.date || new Date().toISOString().split('T')[0],
+      tableName,
+      tableZone: 'Floor 1',
+      waiter: sale.waiterName || 'Staff',
+      orderTakenBy: getOrderTakerDisplay(sale.orderCreatedBy || sale.sellerName || sale.waiterName, sale.orderCreatedRole || sale.sellerRole),
+      settleBillRole: formatRoleTitle(sale.cashierRole || 'Cashier'),
+      customer: sale.dueCustomer || 'Walk-in Customer',
+      items: sale.items || [],
+      subtotal: sale.subtotal || sale.total,
+      discountDeduction: Math.max(0, (sale.subtotal || sale.total) - sale.total),
+      discountType: 'taka',
+      discountVal: 0,
+      netTotal: sale.total,
+      netRestaurantRevenue: sale.netRestaurantRevenue ?? sale.total,
+      paymentBreakdown: {
+        cash: sale.cash || 0,
+        card: sale.card || 0,
+        bkash: sale.bkash || 0,
+        nagad: sale.nagad || 0,
+        due: sale.dueGiven || 0,
+      },
+      changeReturn: sale.change || 0,
+      isSettled: false,
+      receiptType: 'VOID_MEMO',
+      voidReason: sale.voidReason || 'Order Cancelled / Voided',
+      voidAuthorizedBy: sale.voidedBy || (currentUser?.name ? `${currentUser.name} (${currentUser.role || 'Staff'})` : 'Manager'),
+      refundAmount: sale.refundAmount || sale.total,
+      refundMethod: sale.refundMethod || 'CASH',
+      refundStatus: sale.refundStatus || 'REFUNDED'
+    });
+  };
 
   const handleOpenReceipt = (sale: any, defaultType: 'PAID_MEMO' | 'KOT' = 'PAID_MEMO') => {
     if (currentUser?.role === 'WAITER') return;
@@ -220,12 +323,31 @@ export const SalesLedgerView: React.FC = () => {
     const filterNote = search.trim() ? `Search Filter: "${search.trim()}"` : '';
 
     const rowsHtml = filteredSales.map((s, idx) => {
+      const active = isSaleActive(s);
       const payments = [
         s.cash ? `Cash: ৳${s.cash.toLocaleString()}` : '',
         s.card ? `Card: ৳${s.card.toLocaleString()}` : '',
         s.bkash ? `bKash: ৳${s.bkash.toLocaleString()}` : '',
         s.nagad ? `Nagad: ৳${s.nagad.toLocaleString()}` : '',
       ].filter(Boolean).join(', ');
+
+      if (!active) {
+        return `
+          <tr style="border-bottom: 1px solid #fecdd3; font-size: 11px; background: #fff1f2;">
+            <td style="padding: 7px 8px; text-align: center; color: #9f1239;">${idx + 1}</td>
+            <td style="padding: 7px 8px; font-family: monospace; font-weight: bold; color: #9f1239;">
+              ${s.invoiceNo} <span style="font-size: 9px; background: #fecdd3; color: #881337; padding: 1px 4px; border-radius: 3px; font-weight: 900;">VOIDED</span>
+            </td>
+            <td style="padding: 7px 8px; font-family: monospace; color: #94a3b8;">${s.date}</td>
+            <td style="padding: 7px 8px; color: #64748b;">
+              ${s.details} <div style="font-size: 10px; color: #e11d48; font-weight: 700; margin-top: 2px;">(Void Reason: ${s.voidReason || 'Order Cancelled'})</div>
+            </td>
+            <td style="padding: 7px 8px; font-size: 10px; font-family: monospace; color: #94a3b8;">${payments ? `${payments} (Refunded)` : 'Refunded'}</td>
+            <td style="padding: 7px 8px; text-align: right; color: #94a3b8;">—</td>
+            <td style="padding: 7px 8px; text-align: right; font-weight: bold; color: #94a3b8; text-decoration: line-through;">৳${s.total.toLocaleString()}</td>
+          </tr>
+        `;
+      }
 
       return `
         <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
@@ -283,11 +405,11 @@ export const SalesLedgerView: React.FC = () => {
 
         <div class="kpi-grid">
           <div class="kpi-box">
-            <div class="kpi-label">Total Invoices</div>
-            <div class="kpi-value">${filteredSales.length}</div>
+            <div class="kpi-label">Active Orders</div>
+            <div class="kpi-value">${activeFilteredSales.length}${voidedFilteredSales.length > 0 ? ` <span style="font-size: 11px; color: #dc2626;">(${voidedFilteredSales.length} Voided)</span>` : ''}</div>
           </div>
           <div class="kpi-box">
-            <div class="kpi-label">Total Sales</div>
+            <div class="kpi-label">Net Sales</div>
             <div class="kpi-value" style="color: #047857;">৳${totalFilteredSales.toLocaleString()}</div>
           </div>
           <div class="kpi-box">
@@ -317,9 +439,11 @@ export const SalesLedgerView: React.FC = () => {
           </tbody>
           <tfoot>
             <tr style="background: #f1f5f9; font-weight: bold; border-top: 2px solid #0f172a; font-size: 11px;">
-              <td colspan="5" style="padding: 10px; text-align: right; text-transform: uppercase;">Total Sales Summary:</td>
+              <td colspan="5" style="padding: 10px; text-align: right; text-transform: uppercase;">
+                Net Total Sales Summary (${activeFilteredSales.length} Active Records):
+              </td>
               <td style="padding: 10px; text-align: right; color: #dc2626;">৳${totalFilteredDue.toLocaleString()}</td>
-              <td style="padding: 10px; text-align: right; font-size: 14px; font-weight: 900; color: #0f172a;">৳${totalFilteredSales.toLocaleString()}</td>
+              <td style="padding: 10px; text-align: right; font-size: 14px; font-weight: 900; color: #047857;">৳${totalFilteredSales.toLocaleString()}</td>
             </tr>
           </tfoot>
         </table>
@@ -447,6 +571,37 @@ export const SalesLedgerView: React.FC = () => {
             </button>
           )}
 
+          {/* Status Quick Filter Tabs */}
+          <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setStatusFilter('ALL')}
+              className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                statusFilter === 'ALL' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              All ({data.sales.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('ACTIVE')}
+              className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                statusFilter === 'ACTIVE' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-emerald-700'
+              }`}
+            >
+              Active ({data.sales.filter(isSaleActive).length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('VOIDED')}
+              className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                statusFilter === 'VOIDED' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-500 hover:text-rose-700'
+              }`}
+            >
+              Voided ({data.sales.filter(s => !isSaleActive(s)).length})
+            </button>
+          </div>
+
           {/* Mark 2: View Report Button (Print, Export to PDF) */}
           <button
             id="btn-view-sales-report"
@@ -469,6 +624,7 @@ export const SalesLedgerView: React.FC = () => {
                 <th className="py-2.5 px-3 font-bold">Invoice & Date</th>
                 <th className="py-2.5 px-3 font-bold">Details / Customer</th>
                 <th className="py-2.5 px-3 font-bold">Payment Methods Breakdown</th>
+                <th className="py-2.5 px-3 font-bold text-center">Status / Undo</th>
                 <th className="py-2.5 px-2.5 font-bold text-right">Due / Collected</th>
                 <th className="py-2.5 px-3 font-bold text-right">Total Bill</th>
                 <th className="py-2.5 px-3 font-bold text-center">Receipt</th>
@@ -477,7 +633,7 @@ export const SalesLedgerView: React.FC = () => {
             <tbody className="divide-y divide-slate-200">
               {filteredSales.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400">
+                  <td colSpan={7} className="py-8 text-center text-slate-400">
                     No sales records found.
                   </td>
                 </tr>
@@ -490,15 +646,23 @@ export const SalesLedgerView: React.FC = () => {
                     sale.nagad ? { label: 'Nagad', amt: sale.nagad, color: 'text-orange-700' } : null,
                   ].filter(Boolean);
 
+                  const active = isSaleActive(sale);
+
                   return (
                     <tr 
                       key={sale.id} 
                       onClick={() => handleOpenReceipt(sale, 'PAID_MEMO')}
-                      className="hover:bg-amber-50/70 transition cursor-pointer group"
-                      title="Click to view & print thermal receipt"
+                      className={`transition cursor-pointer group ${
+                        active 
+                          ? 'hover:bg-amber-50/70' 
+                          : 'bg-rose-50/30 hover:bg-rose-100/40 text-slate-600'
+                      }`}
+                      title={active ? "Click to view & print thermal receipt" : `Voided: ${sale.voidReason || 'Order Cancelled'}`}
                     >
                       <td className="py-2.5 px-3">
-                        <div className="font-mono font-bold text-slate-900 group-hover:text-blue-700 transition flex items-center gap-1.5">
+                        <div className={`font-mono font-bold transition flex items-center gap-1.5 ${
+                          active ? 'text-slate-900 group-hover:text-blue-700' : 'text-slate-500'
+                        }`}>
                           <span>{sale.invoiceNo}</span>
                           <ReceiptText className="w-3 h-3 text-blue-500 opacity-0 group-hover:opacity-100 transition shrink-0" />
                         </div>
@@ -522,8 +686,8 @@ export const SalesLedgerView: React.FC = () => {
                               }}
                               className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer ${
                                 sale.waiterName && sale.waiterName !== 'Staff' && sale.waiterName !== 'N/A'
-                                  ? 'bg-blue-50 hover:bg-blue-100 text-[#004b9b] border-blue-200'
-                                  : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
+                                    ? 'bg-blue-50 hover:bg-blue-100 text-[#004b9b] border-blue-200'
+                                    : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
                               }`}
                               title="Click to reassign/change waiter"
                             >
@@ -561,9 +725,68 @@ export const SalesLedgerView: React.FC = () => {
                           )}
                         </div>
                       </td>
+
+                      {/* User Marked Column: Order Status / Undo Action */}
+                      <td className="py-2.5 px-3 text-center whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                        {active ? (
+                          <div className="inline-flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => reopenSettledSaleInPos(sale.id)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-800 hover:text-amber-950 border border-amber-300 text-[11px] font-bold shadow-2xs transition cursor-pointer"
+                              title="Open this order in POS Cart (Picture 2) to cancel specific items with partial refund, or cancel entire order"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                              <span>Void / Edit in POS</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenVoidModal(sale)}
+                              className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-600 hover:text-rose-800 border border-rose-200 transition cursor-pointer"
+                              title="Full Order Cancel / Void Modal (1-Click)"
+                            >
+                              <Ban className="w-3.5 h-3.5 shrink-0" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="inline-flex flex-col items-center">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300 text-[10px] font-black uppercase tracking-wider">
+                              <Ban className="w-3 h-3 text-rose-600 shrink-0" />
+                              <span>Voided</span>
+                            </span>
+                            {sale.refundStatus === 'REFUNDED' && (
+                              <span className="text-[9px] font-bold text-emerald-700 mt-0.5" title={`Refunded via ${sale.refundMethod || 'Cash'}`}>
+                                Refund: ৳{(sale.refundAmount || sale.total).toLocaleString()}
+                              </span>
+                            )}
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <button
+                                type="button"
+                                onClick={() => restoreVoidedSale(sale.id)}
+                                className="text-[10px] text-slate-500 hover:text-blue-700 underline font-medium cursor-pointer"
+                                title="Restore this order back to active"
+                              >
+                                Restore
+                              </button>
+                              <span className="text-slate-300">•</span>
+                              <button
+                                type="button"
+                                onClick={() => handlePrintVoidSlip(sale)}
+                                className="text-[10px] text-rose-600 hover:text-rose-800 underline font-medium cursor-pointer"
+                                title="Print Void Receipt / Slip"
+                              >
+                                Slip
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </td>
+
                       <td className="py-2.5 px-2.5 text-right font-mono font-bold">
                         {sale.dueGiven ? (
-                          <div className="text-rose-700 text-xs">Due: ৳{sale.dueGiven.toLocaleString()}</div>
+                          <div className={`text-xs ${active ? 'text-rose-700' : 'text-slate-400 line-through'}`}>
+                            Due: ৳{sale.dueGiven.toLocaleString()}
+                          </div>
                         ) : null}
                         {sale.dueCollected ? (
                           <div className="text-emerald-700 text-xs">Rec: ৳{sale.dueCollected.toLocaleString()}</div>
@@ -572,8 +795,15 @@ export const SalesLedgerView: React.FC = () => {
                           <span className="text-slate-400 font-normal">—</span>
                         ) : null}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-black text-slate-900 text-sm whitespace-nowrap">
-                        ৳{sale.total.toLocaleString()}
+                      <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                        {active ? (
+                          <span className="font-black text-slate-900 text-sm">৳{sale.total.toLocaleString()}</span>
+                        ) : (
+                          <div>
+                            <span className="line-through text-slate-400 text-xs font-bold">৳{sale.total.toLocaleString()}</span>
+                            <div className="text-[10px] text-rose-600 font-black tracking-tight">CANCELLED</div>
+                          </div>
+                        )}
                       </td>
                       <td className="py-2.5 px-2 text-center" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-1">
@@ -700,6 +930,192 @@ export const SalesLedgerView: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Void & Cancel Order Modal with Payment Refund & Restore to Table */}
+      {voidingSale && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 space-y-4 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                  <RotateCcw className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                    <span>Void & Cancel Order</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-black">REFUND</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Invoice: <span className="font-mono font-bold text-slate-800">{voidingSale.invoiceNo}</span> • {voidingSale.date}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVoidingSale(null)}
+                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Order Details Brief */}
+            <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-200/80 space-y-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Order / Table:</span>
+                <span className="font-bold text-slate-900">{voidingSale.table || 'Table Order'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Items Ordered:</span>
+                <span className="font-medium text-slate-800 max-w-xs truncate text-right">{voidingSale.details}</span>
+              </div>
+              <div className="flex justify-between items-center pt-1 border-t border-slate-200/70">
+                <span className="text-slate-600 font-bold">Total Bill:</span>
+                <span className="font-black text-slate-900 text-sm">৳{voidingSale.total.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center text-[11px] text-slate-500">
+                <span>Payment Breakdown:</span>
+                <span className="font-mono font-medium">
+                  {[
+                    voidingSale.cash ? `Cash: ৳${voidingSale.cash.toLocaleString()}` : null,
+                    voidingSale.card ? `Card: ৳${voidingSale.card.toLocaleString()}` : null,
+                    voidingSale.bkash ? `bKash: ৳${voidingSale.bkash.toLocaleString()}` : null,
+                    voidingSale.nagad ? `Nagad: ৳${voidingSale.nagad.toLocaleString()}` : null,
+                    voidingSale.dueGiven ? `Due: ৳${voidingSale.dueGiven.toLocaleString()}` : null,
+                  ].filter(Boolean).join(' • ') || 'None'}
+                </span>
+              </div>
+            </div>
+
+            {/* Step 1: Cancellation Reason */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-2">
+                Reason for Cancellation / Void *
+              </label>
+              <div className="grid grid-cols-2 gap-1.5 mb-2">
+                {[
+                  'Customer Cancellation',
+                  'Wrong Entry / Mistake',
+                  'Food Quality Issue',
+                  'Customer Refused Payment',
+                  'Duplicate Order Re-billed',
+                  'Other Reason'
+                ].map(r => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => {
+                      setVoidReason(r);
+                      if (r !== 'Other Reason') setCustomVoidReason('');
+                    }}
+                    className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-left transition border cursor-pointer ${
+                      voidReason === r 
+                        ? 'bg-[#004b9b] text-white border-[#004b9b] shadow-xs' 
+                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="text"
+                value={customVoidReason}
+                onChange={e => setCustomVoidReason(e.target.value)}
+                placeholder="Specific reason or notes (optional)..."
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-rose-500 focus:outline-none"
+              />
+            </div>
+
+            {/* Step 2: Payment Refund Control */}
+            <div className="bg-rose-50/60 rounded-2xl p-3.5 border border-rose-200/80 space-y-2.5">
+              <div className="flex items-start gap-2.5">
+                <input
+                  type="checkbox"
+                  id="chk-refund-payment"
+                  checked={refundPayment}
+                  onChange={e => setRefundPayment(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-slate-300 cursor-pointer"
+                />
+                <label htmlFor="chk-refund-payment" className="text-xs font-bold text-slate-900 cursor-pointer">
+                  Process Payment Refund to Customer
+                  <span className="block text-[11px] font-normal text-slate-600 mt-0.5">
+                    Refund ৳{voidingSale.total.toLocaleString()} from collection. Reports and cash drawer will auto-adjust.
+                  </span>
+                </label>
+              </div>
+
+              {refundPayment && (
+                <div className="pl-6 pt-1 flex flex-col sm:flex-row sm:items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-700 shrink-0">Refund Method:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { id: 'CASH', label: 'Cash Drawer' },
+                      { id: 'CARD', label: 'Card' },
+                      { id: 'BKASH', label: 'bKash' },
+                      { id: 'NAGAD', label: 'Nagad' }
+                    ].map(m => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setRefundMethod(m.id as any)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition cursor-pointer ${
+                          refundMethod === m.id
+                            ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                            : 'bg-white text-slate-700 border-rose-200 hover:bg-rose-100/50'
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Step 3: Undo Settlement & Re-open Table in POS Billing */}
+            <div className="bg-blue-50/60 rounded-2xl p-3.5 border border-blue-200/80">
+              <div className="flex items-start gap-2.5">
+                <input
+                  type="checkbox"
+                  id="chk-restore-table"
+                  checked={restoreToTable}
+                  onChange={e => setRestoreToTable(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                />
+                <label htmlFor="chk-restore-table" className="text-xs font-bold text-slate-900 cursor-pointer">
+                  Re-open Table in Live POS with Order Cart
+                  <span className="block text-[11px] font-normal text-slate-600 mt-0.5">
+                    Restore the table as occupied with these items in POS Billing so staff can make changes or re-bill.
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="pt-2 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setVoidingSale(null)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmVoid}
+                className={`flex-2 py-2.5 rounded-xl text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
+                  restoreToTable ? 'bg-amber-600 hover:bg-amber-700' : 'bg-rose-600 hover:bg-rose-700'
+                }`}
+              >
+                {restoreToTable ? <RotateCcw className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
+                <span>{restoreToTable ? 'Confirm Void & Re-open in POS Cart' : 'Confirm Void & Refund'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -899,6 +1315,7 @@ export const SalesLedgerView: React.FC = () => {
                         </tr>
                       ) : (
                         filteredSales.map((sale, idx) => {
+                          const active = isSaleActive(sale);
                           const payments = [
                             sale.cash ? `Cash: ৳${sale.cash.toLocaleString()}` : '',
                             sale.card ? `Card: ৳${sale.card.toLocaleString()}` : '',
@@ -907,14 +1324,26 @@ export const SalesLedgerView: React.FC = () => {
                           ].filter(Boolean);
 
                           return (
-                            <tr key={sale.id} className="hover:bg-slate-50/80">
+                            <tr key={sale.id} className={active ? "hover:bg-slate-50/80" : "bg-rose-50/40 text-slate-500 hover:bg-rose-100/40"}>
                               <td className="py-2 px-3 text-center text-slate-500 font-mono text-[11px]">{idx + 1}</td>
                               <td className="py-2 px-3">
-                                <div className="font-mono font-bold text-slate-900">{sale.invoiceNo}</div>
+                                <div className="font-mono font-bold text-slate-900 flex items-center gap-1.5">
+                                  <span>{sale.invoiceNo}</span>
+                                  {!active && (
+                                    <span className="text-[9px] px-1.5 py-0.2 bg-rose-100 text-rose-800 rounded font-black border border-rose-300">
+                                      VOID
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="text-[10px] text-slate-500 font-mono">{sale.date}</div>
                               </td>
                               <td className="py-2 px-3 max-w-sm">
                                 <div className="text-slate-800 font-medium">{sale.details}</div>
+                                {!active && (
+                                  <div className="text-[10px] text-rose-600 font-bold">
+                                    Void Reason: {sale.voidReason || 'Order Cancelled'}
+                                  </div>
+                                )}
                                 {sale.dueCustomer && (
                                   <div className="text-[10px] text-amber-700 font-bold">Due Customer: {sale.dueCustomer}</div>
                                 )}
@@ -924,7 +1353,7 @@ export const SalesLedgerView: React.FC = () => {
                                   {payments.length > 0 ? (
                                     payments.map((p, pIdx) => (
                                       <span key={pIdx} className="bg-slate-100 text-slate-700 px-1 py-0.5 rounded border border-slate-200">
-                                        {p}
+                                        {p} {!active ? '(Refunded)' : ''}
                                       </span>
                                     ))
                                   ) : (
@@ -934,13 +1363,17 @@ export const SalesLedgerView: React.FC = () => {
                               </td>
                               <td className="py-2 px-3 text-right font-mono font-bold">
                                 {sale.dueGiven ? (
-                                  <span className="text-rose-600">৳{sale.dueGiven.toLocaleString()}</span>
+                                  <span className={active ? "text-rose-600" : "text-slate-400 line-through"}>৳{sale.dueGiven.toLocaleString()}</span>
                                 ) : (
                                   <span className="text-slate-400 font-normal">—</span>
                                 )}
                               </td>
-                              <td className="py-2 px-3 text-right font-black text-slate-900 whitespace-nowrap">
-                                ৳{sale.total.toLocaleString()}
+                              <td className="py-2 px-3 text-right whitespace-nowrap">
+                                {active ? (
+                                  <span className="font-black text-slate-900">৳{sale.total.toLocaleString()}</span>
+                                ) : (
+                                  <span className="line-through text-slate-400 font-bold">৳{sale.total.toLocaleString()}</span>
+                                )}
                               </td>
                             </tr>
                           );
