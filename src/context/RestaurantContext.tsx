@@ -538,8 +538,8 @@ export const DEFAULT_PRINT_TEMPLATES: PrintTemplate[] = [
     showPricesOnKot: true,
     showNotes: true,
     fontSize: "base",
-    footerMessage: "Thank you for dining at Barcode Cafe Banani!",
-    footerNotes: "Powered by Barcode Cafe ERP • VAT & SD Included",
+    footerMessage: "Thank you for dining with us!",
+    footerNotes: "VAT & SD Included",
     showVatBreakdown: true,
     showPaymentBreakdown: true,
     showOrderCount: true,
@@ -5448,7 +5448,9 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `barcode_cafe_banani_backup_${new Date().toISOString().split('T')[0]}.json`;
+    const restName = data.restaurantProfile?.name || 'Restaurant_POS';
+    const sanitized = restName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    a.download = `${sanitized}_backup_${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

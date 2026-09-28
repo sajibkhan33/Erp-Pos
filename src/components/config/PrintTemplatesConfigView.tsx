@@ -90,8 +90,9 @@ export const PrintTemplatesConfigView: React.FC = () => {
     setShowPricesOnKot(type === 'BILL');
     setShowNotes(true);
     setFontSize('base');
-    setFooterMessage(type === 'KOT' ? '⚡ Fast Kitchen Dispatch Required' : 'Thank you for dining at Barcode Cafe Banani!');
-    setFooterNotes(type === 'KOT' ? 'Generated via POS Kitchen Link' : 'Powered by Barcode Cafe ERP • VAT & SD Included');
+    const currentRestName = profile?.name || 'Restaurant POS';
+    setFooterMessage(type === 'KOT' ? '⚡ Fast Kitchen Dispatch Required' : `Thank you for dining at ${currentRestName}!`);
+    setFooterNotes(type === 'KOT' ? 'Generated via POS Kitchen Link' : `Powered by ${currentRestName} • VAT & SD Included`);
     setShowVatBreakdown(type === 'BILL');
     setShowPaymentBreakdown(type === 'BILL');
     setShowOrderCount(true);
