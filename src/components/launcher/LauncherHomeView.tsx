@@ -253,23 +253,26 @@ export const LauncherHomeView: React.FC<{ onOpenAiAssistant?: () => void }> = ({
   return (
     <div className="h-screen max-h-screen bg-white flex flex-col justify-between select-none overflow-hidden">
       {/* Top Header Bar */}
-      <header className="h-11 sm:h-14 bg-white shrink-0 z-20 flex items-center border-b border-slate-100">
-        <div className="w-full max-w-[1920px] mx-auto px-2.5 sm:px-5 lg:px-6 flex items-center justify-between gap-2">
-          {/* Left/Center: Logo + Slash + Restaurant Branch Name */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+      <header className="h-11 sm:h-14 bg-white shrink-0 z-20 flex items-center border-b border-slate-100 relative">
+        <div className="w-full max-w-[1920px] mx-auto px-2.5 sm:px-5 lg:px-6 flex items-center justify-between gap-2 relative">
+          {/* Left empty spacer for flex alignment balance */}
+          <div className="flex-1 hidden sm:block" />
+
+          {/* Center: Logo + Slash + Restaurant Branch Name */}
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 min-w-0 sm:absolute sm:left-1/2 sm:-translate-x-1/2">
             <img 
               src={logo4} 
               alt="Logo" 
               className="h-6 sm:h-9 md:h-10 w-auto object-contain select-none shrink-0" 
             />
             <span className="text-slate-300 font-normal text-xs sm:text-base select-none shrink-0">/</span>
-            <span className="font-extrabold text-xs sm:text-sm md:text-base text-slate-800 tracking-wider uppercase select-none truncate max-w-[120px] xs:max-w-[200px] sm:max-w-xs md:max-w-md">
+            <span className="font-extrabold text-xs sm:text-sm md:text-base text-slate-800 tracking-wider uppercase select-none truncate max-w-[140px] xs:max-w-[200px] sm:max-w-xs md:max-w-md">
               {data.restaurantProfile?.name || 'RESTAURANT POS'}
             </span>
           </div>
 
           {/* Right: Real-time Live Clock */}
-          <div className="flex items-center justify-end shrink-0">
+          <div className="flex items-center justify-end shrink-0 sm:flex-1">
             <div className="flex items-center gap-1 sm:gap-1.5 text-[9.5px] xs:text-[11px] sm:text-xs text-slate-500 font-medium whitespace-nowrap">
               <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 shrink-0" />
               <span>{currentDateTime}</span>
