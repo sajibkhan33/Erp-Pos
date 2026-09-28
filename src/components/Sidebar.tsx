@@ -569,17 +569,7 @@ export const Sidebar: React.FC<{ isOpen?: boolean; onCloseMobile?: () => void }>
     .filter(group => group.items.length > 0);
 
   return (
-    <>
-      {/* Mobile backdrop (only on small screens < md) */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-slate-950/60 z-40 md:hidden backdrop-blur-xs"
-          onClick={onCloseMobile}
-        />
-      )}
-
-      {/* Sidebar element */}
-      <aside className="w-72 h-full max-h-screen bg-slate-900 text-slate-100 flex flex-col border-r border-slate-800 shrink-0 select-none overflow-hidden">
+    <aside className="w-72 h-full max-h-screen bg-slate-900 text-slate-100 flex flex-col border-r border-slate-800 shrink-0 select-none overflow-hidden">
         {/* Brand Header with Close Button */}
         <div className="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
           <button
@@ -877,6 +867,5 @@ export const Sidebar: React.FC<{ isOpen?: boolean; onCloseMobile?: () => void }>
           </div>
         </div>
       </aside>
-    </>
   );
 };
