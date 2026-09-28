@@ -217,37 +217,37 @@ export const LauncherHomeView: React.FC<{ onOpenAiAssistant?: () => void }> = ({
       return 'w-full max-w-md mx-auto my-auto flex justify-center h-2/3';
     }
     if (count === 2) {
-      return 'grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 lg:gap-4 w-full h-full max-h-[500px] my-auto';
+      return 'grid grid-cols-1 sm:grid-cols-2 gap-x-2.5 sm:gap-x-3 lg:gap-x-3.5 gap-y-[2px] sm:gap-y-[3px] w-full h-full max-h-[500px] my-auto';
     }
     if (count === 3) {
-      return 'grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 lg:gap-4 w-full h-full max-h-[400px] my-auto';
+      return 'grid grid-cols-1 sm:grid-cols-3 gap-x-2.5 sm:gap-x-3 lg:gap-x-3.5 gap-y-[2px] sm:gap-y-[3px] w-full h-full max-h-[400px] my-auto';
     }
     if (count === 4) {
-      return 'grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 lg:gap-4 w-full h-full my-auto';
+      return 'grid grid-cols-2 md:grid-cols-3 gap-x-2.5 sm:gap-x-3 lg:gap-x-3.5 gap-y-[2px] sm:gap-y-[3px] w-full h-full my-auto';
     }
-    return 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 w-full h-full my-auto';
+    return 'grid grid-cols-2 md:grid-cols-3 gap-x-2.5 sm:gap-x-3 lg:gap-x-3.5 gap-y-[2px] sm:gap-y-[3px] w-full h-full my-auto';
   };
 
   const getCardClasses = () => {
     if (count === 1) {
-      return 'w-full h-full min-h-[180px] p-5 sm:p-8 flex flex-col items-center justify-center rounded-2xl';
+      return 'w-full h-full min-h-[180px] p-6 sm:p-10 flex flex-col items-center justify-center rounded-none';
     }
     if (count === 2) {
-      return 'w-full h-full min-h-[140px] p-4 sm:p-6 flex flex-col items-center justify-center rounded-2xl';
+      return 'w-full h-full min-h-[150px] p-4 sm:p-6 flex flex-col items-center justify-center rounded-none';
     }
-    return 'w-full h-full min-h-[90px] sm:min-h-[120px] p-2.5 sm:p-4 lg:p-6 flex flex-col items-center justify-center rounded-xl sm:rounded-2xl';
+    return 'w-full h-full min-h-0 p-2 sm:p-3 md:p-4 lg:p-5 2xl:p-8 flex flex-col items-center justify-center rounded-none';
   };
 
   const getIconSize = () => {
-    if (count === 1) return 'w-12 h-12 sm:w-16 sm:h-16';
-    if (count === 2) return 'w-10 h-10 sm:w-14 sm:h-14';
-    return 'w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-12 lg:h-12';
+    if (count === 1) return 'w-16 h-16 sm:w-20 sm:h-20';
+    if (count === 2) return 'w-12 h-12 sm:w-16 sm:h-16';
+    return 'w-7 h-7 sm:w-9 sm:h-9 md:w-11 md:h-11 lg:w-12 lg:h-12 2xl:w-16 2xl:h-16 3xl:w-20 3xl:h-20';
   };
 
   const getTextSize = () => {
-    if (count === 1) return 'text-lg sm:text-xl md:text-2xl mt-3';
-    if (count === 2) return 'text-base sm:text-lg md:text-xl mt-2.5';
-    return 'text-xs sm:text-sm md:text-base lg:text-lg mt-1.5 sm:mt-2';
+    if (count === 1) return 'text-xl sm:text-2xl md:text-3xl mt-3';
+    if (count === 2) return 'text-lg sm:text-xl md:text-2xl mt-2.5';
+    return 'text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl 3xl:text-3xl mt-1 sm:mt-1.5 lg:mt-2';
   };
 
   return (
