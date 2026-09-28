@@ -67,6 +67,17 @@
   scrollbar-color: #cbd5e1 transparent;
 }
 
+/* Mobile Touch & Viewport Polish */
+html, body {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+button, a {
+  touch-action: manipulation;
+}
+
 /* Hide spin buttons / stepper arrows on number inputs */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {

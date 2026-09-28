@@ -6,7 +6,8 @@ import {
   ChevronDown, 
   LayoutGrid,
   Home,
-  Printer
+  Printer,
+  Menu
 } from 'lucide-react';
 import logo4 from '../image/logo4.png';
 import { PrinterBridgeModal } from './common/PrinterBridgeModal';
@@ -80,14 +81,12 @@ export const Header: React.FC<{ onOpenMobileSidebar?: () => void }> = ({
       const now = new Date();
       const dateStr = now.toLocaleDateString(language === 'bn' ? 'bn-BD' : 'en-US', { 
         weekday: 'short', 
-        year: 'numeric', 
         month: 'short', 
         day: 'numeric' 
       });
       const timeStr = now.toLocaleTimeString(language === 'bn' ? 'bn-BD' : 'en-US', {
         hour: 'numeric',
         minute: '2-digit',
-        second: '2-digit',
         hour12: true
       });
       if (clockRef.current) {
@@ -117,23 +116,34 @@ export const Header: React.FC<{ onOpenMobileSidebar?: () => void }> = ({
   };
 
   return (
-    <header className="h-16 shrink-0 bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
-      <div className="w-full max-w-[1920px] mx-auto px-3 sm:px-5 lg:px-6 h-full flex items-center justify-between">
-        {/* Left: Brand info & Small Time Display (Aligned with Body left edge) */}
-        <div className="flex items-center">
-          <div className="flex flex-col">
-            <div className="font-bold text-xs text-slate-900 uppercase tracking-tight flex items-center gap-2">
+    <header className="h-14 sm:h-16 shrink-0 bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+      <div className="w-full max-w-[1920px] mx-auto px-2.5 sm:px-5 lg:px-6 h-full flex items-center justify-between gap-1.5 sm:gap-4">
+        {/* Left: Hamburger menu toggle + Brand info & Time Display */}
+        <div className="flex items-center gap-2 min-w-0">
+          {/* Mobile Sidebar Toggle Button */}
+          <button
+            type="button"
+            id="btn-mobile-sidebar-toggle"
+            onClick={onOpenMobileSidebar}
+            className="p-1.5 sm:p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer shrink-0"
+            title="Toggle Menu"
+          >
+            <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700" />
+          </button>
+
+          <div className="flex flex-col min-w-0">
+            <div className="font-bold text-xs sm:text-sm text-slate-900 uppercase tracking-tight flex items-center gap-1.5 truncate">
               <img 
                 src={logo4} 
                 alt="BD HOSTT" 
-                className="h-5 sm:h-6 w-auto object-contain select-none" 
+                className="h-4 sm:h-6 w-auto object-contain select-none shrink-0" 
               />
-              <span className="text-slate-300 font-normal">/</span>
-              <span className="text-slate-700 font-bold">{data.restaurantProfile?.name || 'Restaurant POS'}</span>
+              <span className="text-slate-300 font-normal hidden xs:inline">/</span>
+              <span className="text-slate-800 font-bold truncate max-w-[110px] xs:max-w-[180px] sm:max-w-xs">{data.restaurantProfile?.name || 'Restaurant POS'}</span>
             </div>
-            <div className="text-[7.5px] sm:text-[8.5px] text-slate-400 font-medium flex items-center gap-1 tracking-tight mt-0.5 select-none">
+            <div className="text-[7.5px] sm:text-[8.5px] text-slate-400 font-medium flex items-center gap-1 tracking-tight mt-0.5 select-none truncate">
               <Clock className="w-2 h-2 text-[#004b9b] shrink-0" />
-              <span ref={clockRef}></span>
+              <span ref={clockRef} className="truncate"></span>
             </div>
           </div>
         </div>

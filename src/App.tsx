@@ -143,21 +143,31 @@ const MainLayout: React.FC = () => {
 
   return (
     <div className="h-screen max-h-screen overflow-hidden bg-slate-100 flex font-sans antialiased text-slate-800 selection:bg-[#004b9b] selection:text-white relative">
-      {/* Invisible Left Edge Hover Zone: Hovering mouse on left edge opens sidebar smoothly */}
+      {/* Invisible Left Edge Hover Zone for Desktop: Hovering mouse on left edge opens sidebar smoothly */}
       <div 
         onMouseEnter={handleMouseEnterSidebar}
-        className={`fixed left-0 top-0 bottom-0 z-30 transition-all ${
+        className={`hidden md:block fixed left-0 top-0 bottom-0 z-30 transition-all ${
           isSidebarOpen ? 'w-0 pointer-events-none' : 'w-3.5 hover:w-5 cursor-pointer'
         }`}
         title="Hover mouse here to open menu"
       />
 
-      {/* Smooth Side-by-side Push Column: Always 100% full height */}
+      {/* Mobile Dark Backdrop Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 md:hidden transition-opacity"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Drawer Container: Fixed slide-over on Mobile (<md), Side-by-side push on Desktop (>=md) */}
       <div 
         onMouseEnter={handleMouseEnterSidebar}
         onMouseLeave={handleMouseLeaveSidebar}
-        className={`h-screen max-h-screen shrink-0 overflow-hidden flex flex-col z-20 transition-all duration-300 ease-in-out ${
-          isSidebarOpen ? 'w-72' : 'w-0'
+        className={`fixed md:relative inset-y-0 left-0 z-50 md:z-20 h-full shrink-0 overflow-hidden flex flex-col transition-all duration-300 ease-in-out ${
+          isSidebarOpen 
+            ? 'w-72 translate-x-0' 
+            : '-translate-x-full md:translate-x-0 md:w-0'
         }`}
       >
         <div className="w-72 h-full flex flex-col overflow-hidden">
@@ -168,17 +178,13 @@ const MainLayout: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Container - Always 100% viewport height and overflow-hidden so Header & Footer are firmly fixed */}
+      {/* Main Container - Always 100% viewport height */}
       <div className="flex-1 h-screen h-[100dvh] max-h-[100dvh] flex flex-col min-w-0 w-full overflow-hidden transition-all duration-300 ease-in-out">
         {/* Top Header - Always docked at top */}
         <Header onOpenMobileSidebar={() => setIsSidebarOpen(prev => !prev)} />
 
-        {/* Page View Body - Scrolls cleanly with exact matching alignment */}
+        {/* Page View Body */}
         <main 
-          style={{ 
-            zoom: isSidebarOpen ? '0.70' : '1', 
-            transition: 'zoom 0.25s ease-in-out' 
-          }}
           className={`flex-1 min-h-0 w-full ${
             activeTab === 'pos' 
               ? 'overflow-hidden flex flex-col' 

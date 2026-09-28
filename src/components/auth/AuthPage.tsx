@@ -109,7 +109,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden relative flex flex-col justify-between select-none font-sans text-slate-800 bg-neutral-900">
+    <div className="min-h-screen min-h-[100dvh] w-full overflow-y-auto relative flex flex-col justify-between select-none font-sans text-slate-800 bg-neutral-900">
       {/* Background Still Image */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
         <img
