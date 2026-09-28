@@ -270,7 +270,7 @@ export const LauncherHomeView: React.FC<{ onOpenAiAssistant?: () => void }> = ({
             />
             <span className="text-slate-300 font-normal text-sm sm:text-base select-none">/</span>
             <span className="font-extrabold text-xs sm:text-sm md:text-base text-slate-800 tracking-wider uppercase select-none text-center whitespace-nowrap">
-              {data.restaurantProfile?.name || 'BARCODE CAFE BANANI'}
+              {data.restaurantProfile?.name || 'RESTAURANT POS'}
             </span>
           </div>
 

@@ -31,7 +31,7 @@ export const ThermalBillModal: React.FC = () => {
   const isVoidMemo = printableReceipt?.receiptType === 'VOID_MEMO';
   const isKot = isCancelKot || printableReceipt?.receiptType === 'KOT';
   const profile = data?.restaurantProfile;
-  const restaurantName = profile?.name || 'BARCODE CAFE BANANI';
+  const restaurantName = profile?.name || 'RESTAURANT POS';
   const restaurantAddress = profile?.address || 'House #42, Road #11, Block D, Banani, Dhaka-1213';
   const restaurantHotline = profile?.phone || '+880 1700-000000';
   const restaurantBin = profile?.binOrVat || '0029381-01';
@@ -1224,7 +1224,7 @@ export const ThermalBillModal: React.FC = () => {
                   {activeTemplate?.footerMessage || `Thank you for dining at ${restaurantName}!`}
                 </p>
                 <p>
-                  {activeTemplate?.footerNotes || 'Powered by Barcode Cafe ERP • All VAT & Taxes Included'}
+                  {activeTemplate?.footerNotes || `Powered by ${restaurantName} • All VAT & Taxes Included`}
                 </p>
               </div>
             </div>

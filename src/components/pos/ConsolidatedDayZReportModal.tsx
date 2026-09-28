@@ -10,7 +10,7 @@ export const ConsolidatedDayZReportModal: React.FC = () => {
 
   const day = selectedDayEndPreview;
   const profile = data.restaurantProfile;
-  const restaurantName = profile?.name || 'BARCODE CAFE BANANI';
+  const restaurantName = profile?.name || 'RESTAURANT POS';
   const restaurantAddress = profile?.address || 'House #42, Road #11, Block D, Banani, Dhaka-1213';
   const restaurantHotline = profile?.phone || '+880 1700-000000';
   const restaurantBin = profile?.binOrVat || '0029381-01';

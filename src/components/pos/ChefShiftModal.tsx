@@ -111,7 +111,7 @@ export const ChefShiftModal: React.FC = () => {
     setIsPrintingSlip(true);
     try {
       await dispatchHardwarePrint('/api/hardware/print-chef-slip', {
-        restaurantName: data.restaurantProfile?.name || 'BARCODE CAFE BANANI',
+        restaurantName: data.restaurantProfile?.name || 'RESTAURANT POS',
         restaurantAddress: data.restaurantProfile?.address || 'Banani, Dhaka',
         shift: {
           ...activeChefShift,

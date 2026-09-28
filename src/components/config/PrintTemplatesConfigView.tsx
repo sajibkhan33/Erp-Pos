@@ -812,7 +812,7 @@ export const PrintTemplatesConfigView: React.FC = () => {
                       </div>
                     )}
                     <h3 className="font-extrabold font-sans text-sm text-slate-900">
-                      {profile?.name || 'BARCODE CAFE BANANI'}
+                      {profile?.name || 'RESTAURANT POS'}
                     </h3>
                     {showTagline && profile?.tagline && (
                       <p className="text-[9px] text-slate-500 font-sans italic">{profile.tagline}</p>

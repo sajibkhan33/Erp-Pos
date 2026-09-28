@@ -274,7 +274,7 @@ async function startServer() {
     // 3. Center Align: Restaurant Header
     pushBytes([0x1B, 0x61, 0x01]); // Center
     pushBytes([0x1B, 0x45, 0x01]); // Bold ON
-    pushStr(`${bill.restaurantName || "BARCODE CAFE BANANI"}\n`);
+    pushStr(`${bill.restaurantName || "RESTAURANT POS"}\n`);
     pushBytes([0x1B, 0x45, 0x00]); // Bold OFF
 
     const rawAddress = bill.restaurantAddress || "House #42, Road #11, Block D, Banani, Dhaka-1213";
@@ -502,7 +502,7 @@ async function startServer() {
 
     // 3. Center Align: Restaurant Header
     pushBytes([0x1B, 0x61, 0x01]); // Center
-    pushStr(`${report.restaurantName || "BARCODE CAFE BANANI"}\n`);
+    pushStr(`${report.restaurantName || "RESTAURANT POS"}\n`);
 
     // Restaurant Address
     const rawAddress = report.restaurantAddress || "House #42, Road #11, Block D, Banani, Dhaka-1213";
@@ -702,7 +702,7 @@ async function startServer() {
     pushBytes([0x1B, 0x21, 0x00]); // ESC ! 0: Uniform font A (42 columns)
 
     pushBytes([0x1B, 0x61, 0x01]);
-    pushStr(`${data.restaurantName || "BARCODE CAFE BANANI"}\n`);
+    pushStr(`${data.restaurantName || "RESTAURANT POS"}\n`);
     pushStr(`${data.restaurantAddress || "Banani, Dhaka"}\n`);
     pushStr("------------------------------------------\n");
     pushStr("*** WAITER SERVER SUMMARY SLIP ***\n");
@@ -794,7 +794,7 @@ async function startServer() {
     pushBytes([0x1B, 0x21, 0x00]); // ESC ! 0: Uniform font A (42 columns)
 
     pushBytes([0x1B, 0x61, 0x01]);
-    pushStr(`${data.restaurantName || "BARCODE CAFE BANANI"}\n`);
+    pushStr(`${data.restaurantName || "RESTAURANT POS"}\n`);
     pushStr("House #42, Road #11, Block D, Banani, Dhaka\n");
     pushStr("------------------------------------------\n");
     pushStr("*** DAILY MASTER DAY-END Z-REPORT ***\n");
@@ -910,7 +910,7 @@ async function startServer() {
     pushBytes([0x1B, 0x21, 0x00]); // ESC ! 0: Uniform font A (42 columns)
 
     pushBytes([0x1B, 0x61, 0x01]);
-    pushStr(`${data.restaurantName || "BARCODE CAFE BANANI"}\n`);
+    pushStr(`${data.restaurantName || "RESTAURANT POS"}\n`);
     pushStr(`${data.restaurantAddress || "Banani, Dhaka"}\n`);
     pushStr("------------------------------------------\n");
     pushStr("*** KITCHEN PRODUCTION & HANDOVER SLIP ***\n");

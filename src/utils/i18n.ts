@@ -158,7 +158,7 @@ export const translations: Record<Language, Translations> = {
     dataCleanupSub: 'Module-wise & Backup',
 
     // Header & System
-    brandTitle: 'Barcode Cafe Banani',
+    brandTitle: 'Restaurant POS',
     brandTagline: 'Restaurant POS & Recipe BOM ERP',
     restaurantProfile: 'Restaurant Profile & Logo',
     restaurantProfileSub: 'Logo branding, branch address & tax info',
@@ -278,7 +278,7 @@ export const translations: Record<Language, Translations> = {
     dataCleanupSub: 'Module-wise & Backup',
 
     // Header & System
-    brandTitle: 'Barcode Cafe Banani',
+    brandTitle: 'Restaurant POS',
     brandTagline: 'Restaurant POS & Recipe BOM ERP',
     restaurantProfile: 'Restaurant Profile & Logo',
     restaurantProfileSub: 'Logo branding, branch address & tax info',

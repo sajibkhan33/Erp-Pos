@@ -129,7 +129,7 @@ export const Header: React.FC<{ onOpenMobileSidebar?: () => void }> = ({
                 className="h-5 sm:h-6 w-auto object-contain select-none" 
               />
               <span className="text-slate-300 font-normal">/</span>
-              <span className="text-slate-700 font-bold">{data.restaurantProfile?.name || 'Barcode Cafe Banani'}</span>
+              <span className="text-slate-700 font-bold">{data.restaurantProfile?.name || 'Restaurant POS'}</span>
             </div>
             <div className="text-[7.5px] sm:text-[8.5px] text-slate-400 font-medium flex items-center gap-1 tracking-tight mt-0.5 select-none">
               <Clock className="w-2 h-2 text-[#004b9b] shrink-0" />

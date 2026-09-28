@@ -109,7 +109,7 @@ export const WaiterShiftModal: React.FC = () => {
   const handlePrintServerSlip = async () => {
     setIsPrintingSlip(true);
     const slipPayload = {
-      restaurantName: data.restaurantProfile?.name || 'BARCODE CAFE BANANI',
+      restaurantName: data.restaurantProfile?.name || 'RESTAURANT POS',
       restaurantAddress: data.restaurantProfile?.address || 'Banani, Dhaka',
       waiterName: activeWaiter,
       date: today,

@@ -92,14 +92,14 @@ export const HeadsConfigView: React.FC = () => {
 
   // Restaurant Profile & Logo State
   const [profileForm, setProfileForm] = useState<RestaurantProfile>({
-    name: data.restaurantProfile?.name || 'Barcode Cafe Banani',
+    name: data.restaurantProfile?.name || 'Restaurant POS',
     tagline: data.restaurantProfile?.tagline || 'Restaurant POS & Recipe BOM ERP',
     logoUrl: data.restaurantProfile?.logoUrl || '',
     logoType: data.restaurantProfile?.logoType || 'preset',
     presetIcon: data.restaurantProfile?.presetIcon || 'flame',
     address: data.restaurantProfile?.address || 'House #42, Road #11, Block D, Banani, Dhaka-1213',
     phone: data.restaurantProfile?.phone || '+880 1700-000000',
-    email: data.restaurantProfile?.email || 'banani@barcodecafe.com',
+    email: data.restaurantProfile?.email || 'info@restaurant.com',
     binOrVat: data.restaurantProfile?.binOrVat || '0029381-01',
     currencySymbol: data.restaurantProfile?.currencySymbol || '৳'
   });
@@ -886,7 +886,7 @@ export const HeadsConfigView: React.FC = () => {
                     </div>
                   )}
                   <div className="font-extrabold text-sm uppercase text-slate-900 tracking-wide font-sans">
-                    {profileForm.name || 'BARCODE CAFE BANANI'}
+                    {profileForm.name || 'RESTAURANT POS'}
                   </div>
                   <div className="text-[10px] text-slate-600 font-sans mt-0.5">
                     {profileForm.address || 'House #42, Road #11, Block D, Banani, Dhaka'}
