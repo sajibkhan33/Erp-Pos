@@ -1435,43 +1435,6 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const mergedDimensions = (!parsed.tableDimensions || (parsed.tableDimensions.width === 210 && parsed.tableDimensions.height === 140))
           ? { width: 147, height: 98 }
           : parsed.tableDimensions;
-        const salesCleanedKey = 'barcode_cafe_sales_cleared_v1';
-        const alreadyCleaned = localStorage.getItem(salesCleanedKey);
-
-        if (!alreadyCleaned) {
-          localStorage.setItem(salesCleanedKey, 'true');
-          const resetTables = mergedTables.map((t: Table) => ({
-            ...t,
-            status: 'free' as const,
-            waiter: '',
-            customerName: '',
-            cart: [],
-            discountVal: 0,
-            isBillPrinted: false
-          }));
-          const cleanBusinessDay = {
-            date: new Date().toISOString().split('T')[0],
-            isOpen: false,
-            dayNumber: 1
-          };
-          const cleanData = {
-            ...DEFAULT_DATA,
-            ...parsed,
-            sales: [],
-            posSessions: [],
-            dayEndRecords: [],
-            session: { isActive: false, openingCash: 0, startTime: "" },
-            businessDay: cleanBusinessDay,
-            tables: resetTables,
-            tableZones: mergedZones,
-            tableDimensions: mergedDimensions
-          };
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanData));
-          } catch {}
-          return cleanData;
-        }
-
         const businessDay = parsed.businessDay || {
           date: new Date().toISOString().split('T')[0],
           isOpen: parsed.session?.isActive ?? false,
@@ -1688,9 +1651,10 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [currentUser]);
 
   const lastSyncedStringRef = useRef<string>("");
+  const lastSyncedTimestampRef = useRef<number>(0);
   const isUpdatingFromSync = useRef<boolean>(false);
   const isInitialSyncDoneRef = useRef<boolean>(false);
-  const lastLocalCartEditTimeRef = useRef<number>(0);
+  const lastLocalEditTimeRef = useRef<number>(0);
   const dataRef = useRef<AppData>(data);
 
   useEffect(() => {
@@ -1699,8 +1663,8 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Synchronize state from server
   const syncFromServer = async (isInitial = false) => {
-    // If local cart/order edit happened within 3.5s, don't let periodic polling overwrite it
-    if (!isInitial && Date.now() - lastLocalCartEditTimeRef.current < 3500) {
+    // If local update/delete/edit happened within 5s, don't let periodic background polling overwrite it
+    if (!isInitial && Date.now() - lastLocalEditTimeRef.current < 5000) {
       return;
     }
 
@@ -1716,6 +1680,12 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           // Do not mutate state while reviewing or printing a receipt
           return;
         }
+
+        const serverTimestamp = result.timestamp || 0;
+        if (!isInitial && serverTimestamp && serverTimestamp < lastSyncedTimestampRef.current) {
+          return;
+        }
+
         if (result.data.tableDimensions?.width === 210 && result.data.tableDimensions?.height === 140) {
           result.data.tableDimensions = { width: 147, height: 98 };
         }
@@ -1771,6 +1741,7 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           isUpdatingFromSync.current = true;
           setData(result.data);
           lastSyncedStringRef.current = serverStateStr;
+          if (serverTimestamp) lastSyncedTimestampRef.current = serverTimestamp;
           try {
             localStorage.setItem(STORAGE_KEY, serverStateStr);
           } catch {}
@@ -1779,6 +1750,7 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           }, 150);
         } else if (!lastSyncedStringRef.current) {
           lastSyncedStringRef.current = serverStateStr;
+          if (serverTimestamp) lastSyncedTimestampRef.current = serverTimestamp;
         }
       }
     } catch (err) {
@@ -1808,6 +1780,9 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const result = await res.json();
         if (result.success) {
           lastSyncedStringRef.current = serialized;
+          if (result.timestamp) {
+            lastSyncedTimestampRef.current = result.timestamp;
+          }
         }
       }
     } catch (err) {
@@ -1830,7 +1805,8 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      if (isInitialSyncDoneRef.current) {
+      if (isInitialSyncDoneRef.current && !isUpdatingFromSync.current) {
+        lastLocalEditTimeRef.current = Date.now();
         syncToServer(data);
       }
     } catch (e) {
@@ -2584,7 +2560,7 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (!menuItem) return;
 
     const addQty = customQty && customQty > 0 ? customQty : 1;
-    lastLocalCartEditTimeRef.current = Date.now();
+    lastLocalEditTimeRef.current = Date.now();
 
     setData(prev => {
       const table = prev.tables.find(t => t.id === tableId);
@@ -2678,7 +2654,7 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setIsStartSessionModalOpen(true);
       return;
     }
-    lastLocalCartEditTimeRef.current = Date.now();
+    lastLocalEditTimeRef.current = Date.now();
     setData(prev => {
       const updatedTables = prev.tables.map(table => {
         if (table.id !== tableId) return table;
@@ -2710,7 +2686,7 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setIsStartSessionModalOpen(true);
       return;
     }
-    lastLocalCartEditTimeRef.current = Date.now();
+    lastLocalEditTimeRef.current = Date.now();
     setData(prev => {
       const updatedTables = prev.tables.map(table => {
         if (table.id !== tableId) return table;
@@ -2753,7 +2729,7 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const updateCartItemNotes = (tableId: string, cartItemIdOrIdx: string | number, notes: string) => {
-    lastLocalCartEditTimeRef.current = Date.now();
+    lastLocalEditTimeRef.current = Date.now();
     setData(prev => {
       const updatedTables = prev.tables.map(table => {
         if (table.id !== tableId) return table;
@@ -2779,7 +2755,7 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const removeCartItem = (tableId: string, cartItemIdOrIdx: string | number) => {
-    lastLocalCartEditTimeRef.current = Date.now();
+    lastLocalEditTimeRef.current = Date.now();
     setData(prev => {
       const updatedTables = prev.tables.map(table => {
         if (table.id !== tableId) return table;
@@ -2809,7 +2785,7 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const clearCart = (tableId: string) => {
-    lastLocalCartEditTimeRef.current = Date.now();
+    lastLocalEditTimeRef.current = Date.now();
     setData(prev => ({
       ...prev,
       tables: prev.tables.map(t => t.id === tableId ? { 
@@ -2838,7 +2814,7 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const setTableWaiter = (tableId: string, waiter: string) => {
-    lastLocalCartEditTimeRef.current = Date.now();
+    lastLocalEditTimeRef.current = Date.now();
     setData(prev => ({
       ...prev,
       tables: prev.tables.map(t => t.id === tableId ? { 
@@ -2853,7 +2829,7 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const setTableCustomer = (tableId: string, customer: string) => {
-    lastLocalCartEditTimeRef.current = Date.now();
+    lastLocalEditTimeRef.current = Date.now();
     const trimmed = (customer || '').trim();
     setData(prev => {
       const agents = prev.commissionAgents || DEFAULT_COMMISSION_AGENTS;

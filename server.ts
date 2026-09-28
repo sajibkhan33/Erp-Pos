@@ -1372,10 +1372,9 @@ async function startServer() {
     try {
       const { data: clientData, clientTimestamp } = req.body;
       
-      // If client sent newer timestamp, or if server has no state, overwrite
       const now = Date.now();
       const effectiveClientTs = clientTimestamp || now;
-      if (clientData && (!cachedState || !lastServerUpdate || effectiveClientTs >= (lastServerUpdate - 2000))) {
+      if (clientData) {
         cachedState = clientData;
         lastServerUpdate = Math.max(now, effectiveClientTs);
         
