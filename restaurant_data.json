@@ -982,6 +982,7 @@
         "permissions": [
           "dashboard",
           "pos",
+          "menu-items",
           "sales",
           "payables",
           "receivables",
@@ -1035,6 +1036,7 @@
         "permissions": [
           "dashboard",
           "pos",
+          "menu-items",
           "sales",
           "payables",
           "receivables",
@@ -1084,6 +1086,7 @@
         "permissions": [
           "dashboard",
           "pos",
+          "menu-items",
           "sales",
           "payables",
           "receivables",
@@ -1133,6 +1136,7 @@
       "CASHIER": [
         "dashboard",
         "pos",
+        "menu-items",
         "sales",
         "payables",
         "receivables",
@@ -1561,5 +1565,5 @@
     },
     "dayEndRecords": []
   },
-  "timestamp": 1791614416091
+  "timestamp": 1791618487819
 }
