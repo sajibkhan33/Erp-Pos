@@ -16,29 +16,13 @@ let cachedState: any = null;
 let lastServerUpdate = 0;
 let isLoadedFromMongo = false;
 
-function sanitizeStatePermissions(state: any) {
-  if (!state) return state;
-  if (state.rolePermissions?.CASHIER && !state.rolePermissions.CASHIER.includes("menu-items")) {
-    state.rolePermissions.CASHIER.push("menu-items");
-  }
-  if (Array.isArray(state.users)) {
-    state.users = state.users.map((u: any) => {
-      if (u.role === "CASHIER" && Array.isArray(u.permissions) && !u.permissions.includes("menu-items")) {
-        return { ...u, permissions: [...u.permissions, "menu-items"] };
-      }
-      return u;
-    });
-  }
-  return state;
-}
-
 // Try to load fallback state from JSON backup on startup (used only until MongoDB connects)
 try {
   if (fs.existsSync(STATE_FILE)) {
     const raw = fs.readFileSync(STATE_FILE, "utf-8");
     if (raw) {
       const parsed = JSON.parse(raw);
-      cachedState = sanitizeStatePermissions(parsed.data || null);
+      cachedState = parsed.data || null;
       // Default fallback file from repository has timestamp = 0 so client state with real updates always takes priority
       lastServerUpdate = 0;
     }
@@ -54,7 +38,7 @@ async function initDatabase() {
     try {
       const doc = await RestaurantStateModel.findOne({ stateKey: STATE_KEY }).lean() as any;
       if (doc && doc.data) {
-        cachedState = sanitizeStatePermissions(doc.data);
+        cachedState = doc.data;
         const now = Date.now();
         lastServerUpdate = (doc.timestamp && doc.timestamp <= now + 60000) ? doc.timestamp : now;
         isLoadedFromMongo = true;
@@ -1757,7 +1741,7 @@ async function startServer() {
       if (isDbConnected()) {
         const doc = await RestaurantStateModel.findOne({ stateKey: STATE_KEY }).lean() as any;
         if (doc && doc.data) {
-          cachedState = sanitizeStatePermissions(doc.data);
+          cachedState = doc.data;
           lastServerUpdate = doc.timestamp || Date.now();
           isLoadedFromMongo = true;
         }

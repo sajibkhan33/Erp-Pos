@@ -2201,9 +2201,6 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (savedUser && savedUser !== 'null' && savedUser !== 'undefined') {
         const parsed = JSON.parse(savedUser);
         if (parsed && parsed.id) {
-          if (parsed.role === 'CASHIER' && Array.isArray(parsed.permissions) && !parsed.permissions.includes('menu-items')) {
-            parsed.permissions.push('menu-items');
-          }
           return parsed;
         }
       }
@@ -2382,23 +2379,6 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           if (result.data.chartOfAccounts) {
             result.data.chartOfAccounts = ensureAccountSystemRoles(result.data.chartOfAccounts);
           }
-          if (result.data.rolePermissions?.CASHIER && !result.data.rolePermissions.CASHIER.includes('menu-items')) {
-            result.data.rolePermissions.CASHIER = [...result.data.rolePermissions.CASHIER, 'menu-items'];
-          }
-          if (Array.isArray(result.data.users)) {
-            result.data.users = result.data.users.map((u: AppUser) => {
-              if (u.role === 'CASHIER' && Array.isArray(u.permissions) && !u.permissions.includes('menu-items')) {
-                return { ...u, permissions: [...u.permissions, 'menu-items'] };
-              }
-              return u;
-            });
-          }
-          setCurrentUser(prev => {
-            if (prev && prev.role === 'CASHIER' && (!prev.permissions || !prev.permissions.includes('menu-items'))) {
-              return { ...prev, permissions: [...(prev.permissions || []), 'menu-items'] };
-            }
-            return prev;
-          });
         }
         const serverStateStr = JSON.stringify(result.data);
         const currentLocalStr = JSON.stringify(dataRef.current);
@@ -2712,12 +2692,6 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
     }
     if (currentUser.role === 'ADMIN') return true;
-    if (tab === 'menu-items' && (currentUser.role === 'CASHIER' || currentUser.role === 'MANAGER')) {
-      const explicitCashierPerms = data.rolePermissions?.[currentUser.role];
-      if (!explicitCashierPerms || explicitCashierPerms.includes('menu-items')) {
-        return true;
-      }
-    }
     return (currentUser.permissions || []).includes(tab);
   };
 
