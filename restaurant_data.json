@@ -735,8 +735,7 @@
       "Kader Meat Supply",
       "City Store",
       "Agro Foods",
-      "Sajjad",
-      "Karim"
+      "Sajjad"
     ],
     "customers": [
       "Walk-in Customer",
@@ -1562,5 +1561,5 @@
     },
     "dayEndRecords": []
   },
-  "timestamp": 1791453700162
+  "timestamp": 1791614416091
 }
